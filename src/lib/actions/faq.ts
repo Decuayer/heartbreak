@@ -25,6 +25,17 @@ export async function getFaqQuestions() {
   return data ?? [];
 }
 
+export async function getFaqQuestionsAdmin() {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("faq_questions")
+    .select("*")
+    .order("display_order", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 export async function checkFaqAnswer(
   questionId: string,
   selectedOption: "A" | "B" | "C" | "D"

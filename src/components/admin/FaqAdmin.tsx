@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createFaqQuestion, updateFaqQuestion, deleteFaqQuestion, getFaqQuestions } from "@/lib/actions/faq";
+import { createFaqQuestion, updateFaqQuestion, deleteFaqQuestion, getFaqQuestionsAdmin } from "@/lib/actions/faq";
 import Modal from "@/components/admin/Modal";
 import { Plus, Trash2, Edit2, CheckCircle } from "lucide-react";
 
@@ -12,6 +12,7 @@ interface FaqQuestion {
   option_b: string;
   option_c: string;
   option_d: string;
+  correct_option?: string;
   display_order: number;
 }
 
@@ -37,7 +38,7 @@ export default function FaqAdmin({ initialQuestions }: { initialQuestions: FaqQu
       } else {
         setIsModalOpen(false);
         setEditingQuestion(null);
-        const updated = await getFaqQuestions();
+        const updated = await getFaqQuestionsAdmin();
         setQuestions(updated);
       }
     });
