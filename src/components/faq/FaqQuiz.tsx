@@ -34,40 +34,13 @@ interface Props {
   questions: Question[];
 }
 
-const SCORE_KEY = "heartbeat_faq_scores";
-
-function getStoredScore(): { correct: number; total: number } {
-  if (typeof window === "undefined") return { correct: 0, total: 0 };
-  try {
-    const raw = localStorage.getItem(SCORE_KEY);
-    return raw ? JSON.parse(raw) : { correct: 0, total: 0 };
-  } catch {
-    return { correct: 0, total: 0 };
-  }
-}
-
-function saveScore(score: { correct: number; total: number }) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(SCORE_KEY, JSON.stringify(score));
-}
-
 export default function FaqQuiz({ questions }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selected, setSelected] = useState<Option | null>(null);
   const [result, setResult] = useState<"correct" | "wrong" | null>(null);
   const [isPending, setIsPending] = useState(false);
-  const [score, setScore] = useState<{ correct: number; total: number } | null>(null);
+  const [score, setScore] = useState({ correct: 0, total: 0 });
   const [isFinished, setIsFinished] = useState(false);
-
-  // Lazy init score from localStorage
-  function getScore() {
-    if (!score) {
-      const s = getStoredScore();
-      setScore(s);
-      return s;
-    }
-    return score;
-  }
 
   const currentQ = questions[currentIndex];
 
@@ -80,14 +53,11 @@ export default function FaqQuiz({ questions }: Props) {
     const resultType = isCorrect ? "correct" : "wrong";
     setResult(resultType);
 
-    // Update score in localStorage
-    const current = getScore();
-    const newScore = {
-      correct: current.correct + (isCorrect ? 1 : 0),
-      total: current.total + 1,
-    };
-    setScore(newScore);
-    saveScore(newScore);
+    // Update session score
+    setScore((prev) => ({
+      correct: prev.correct + (isCorrect ? 1 : 0),
+      total: prev.total + 1,
+    }));
 
     setIsPending(false);
   }
@@ -107,12 +77,8 @@ export default function FaqQuiz({ questions }: Props) {
     setSelected(null);
     setResult(null);
     setIsFinished(false);
-    const newScore = { correct: 0, total: 0 };
-    setScore(newScore);
-    saveScore(newScore);
+    setScore({ correct: 0, total: 0 });
   }
-
-  const currentScore = score ?? getStoredScore();
 
   if (!questions.length) {
     return (
@@ -125,7 +91,7 @@ export default function FaqQuiz({ questions }: Props) {
   }
 
   if (isFinished) {
-    const pct = Math.round((currentScore.correct / currentScore.total) * 100) || 0;
+    const pct = Math.round((score.correct / score.total) * 100) || 0;
     return (
       <div className="glass-card animate-scale-in" style={{ padding: "48px", textAlign: "center" }}>
         <div style={{ fontSize: "3rem", marginBottom: 16 }}>
@@ -147,7 +113,7 @@ export default function FaqQuiz({ questions }: Props) {
           {pct}%
         </div>
         <p style={{ marginBottom: 24, color: "var(--color-text-muted)" }}>
-          {currentScore.correct} / {currentScore.total} doğru cevap
+          {score.correct} / {score.total} doğru cevap
         </p>
         <p style={{ marginBottom: 32, fontStyle: "italic" }}>
           {pct >= 80
@@ -178,18 +144,6 @@ export default function FaqQuiz({ questions }: Props) {
       >
         <span style={{ fontSize: "0.875rem", color: "var(--color-text-muted)" }}>
           {currentIndex + 1} / {questions.length}
-        </span>
-        <span
-          style={{
-            padding: "4px 12px",
-            background: "rgba(196,28,82,0.12)",
-            border: "1px solid rgba(196,28,82,0.2)",
-            borderRadius: "9999px",
-            fontSize: "0.8125rem",
-            color: "var(--color-blush)",
-          }}
-        >
-          ✅ {currentScore.correct} doğru
         </span>
       </div>
 

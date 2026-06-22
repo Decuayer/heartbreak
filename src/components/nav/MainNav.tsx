@@ -26,8 +26,9 @@ export default function MainNav() {
 
   return (
     <nav className="nav">
-      <Link href="/" className="nav-brand" style={{ fontSize: "1.75rem", textDecoration: "none" }}>
-        <span className="heart-pulse" aria-hidden="true">❤️</span>
+      <Link href="/" className="nav-brand" style={{ textDecoration: "none" }}>
+        <span className="heart-pulse" style={{ fontSize: "1.75rem" }} aria-hidden="true">❤️</span>
+        <span style={{ fontSize: "1.25rem", color: "var(--color-text-primary)" }}>Nehir Polat'ın Sitesi</span>
       </Link>
 
       <ul className="nav-links">

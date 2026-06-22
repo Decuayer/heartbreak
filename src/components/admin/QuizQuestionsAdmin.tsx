@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { upsertQuizQuestion, getQuizQuestionsAdmin, deleteQuizQuestion } from "@/lib/actions/faq";
 import Modal from "@/components/admin/Modal";
-import { Plus, Trash2, MessageSquare } from "lucide-react";
+import { Plus, Trash2, Edit2, MessageSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface QuizQuestion {
@@ -13,15 +13,21 @@ interface QuizQuestion {
   correct_answer: string;
   display_order: number;
   hint?: string;
+  option_a?: string;
+  option_b?: string;
+  option_c?: string;
+  option_d?: string;
 }
 
 export default function QuizQuestionsAdmin({ initialQuestions }: { initialQuestions: QuizQuestion[] }) {
   const [questions, setQuestions] = useState(initialQuestions);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
+  const [questionType, setQuestionType] = useState<"open_ended" | "multiple_choice">("open_ended");
   const [formError, setFormError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  async function handleCreate(formData: FormData) {
+  async function handleSubmit(formData: FormData) {
     setFormError("");
     startTransition(async () => {
       const result = await upsertQuizQuestion(formData);
@@ -29,10 +35,25 @@ export default function QuizQuestionsAdmin({ initialQuestions }: { initialQuesti
         setFormError(result.error);
       } else {
         setIsModalOpen(false);
+        setEditingQuestion(null);
         const updated = await getQuizQuestionsAdmin();
         setQuestions(updated);
       }
     });
+  }
+
+  function handleEditClick(q: QuizQuestion) {
+    setEditingQuestion(q);
+    setQuestionType((q.question_type as "open_ended" | "multiple_choice") || "open_ended");
+    setFormError("");
+    setIsModalOpen(true);
+  }
+
+  function handleAddNewClick() {
+    setEditingQuestion(null);
+    setQuestionType("open_ended");
+    setFormError("");
+    setIsModalOpen(true);
   }
 
   async function handleDelete(id: string) {
@@ -54,7 +75,7 @@ export default function QuizQuestionsAdmin({ initialQuestions }: { initialQuesti
             Bu sorular kullanıcı girişinde sorulur. Doğru cevapları girilmeden giriş yapılamaz.
           </p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
+        <button onClick={handleAddNewClick} className="btn-primary">
           <Plus size={16} />
           Yeni Soru
         </button>
@@ -125,23 +146,43 @@ export default function QuizQuestionsAdmin({ initialQuestions }: { initialQuesti
                   </p>
                 )}
               </div>
-              <button
-                onClick={() => handleDelete(q.id)}
-                className="btn-danger"
-                disabled={isPending}
-                style={{ padding: "6px 12px", fontSize: "0.75rem" }}
-              >
-                <Trash2 size={12} />
-                Sil
-              </button>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  onClick={() => handleEditClick(q)}
+                  className="btn-secondary"
+                  disabled={isPending}
+                  style={{ padding: "6px 12px", fontSize: "0.75rem" }}
+                >
+                  <Edit2 size={12} />
+                  Düzenle
+                </button>
+                <button
+                  onClick={() => handleDelete(q.id)}
+                  className="btn-danger"
+                  disabled={isPending}
+                  style={{ padding: "6px 12px", fontSize: "0.75rem" }}
+                >
+                  <Trash2 size={12} />
+                  Sil
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Create Modal */}
-      <Modal title="Yeni Giriş Sorusu Ekle" isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <form action={handleCreate} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Create / Edit Modal */}
+      <Modal 
+        title={editingQuestion ? "Giriş Sorusunu Güncelle" : "Yeni Giriş Sorusu Ekle"} 
+        isOpen={isModalOpen} 
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingQuestion(null);
+        }}
+      >
+        <form key={editingQuestion?.id || "new"} action={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          {editingQuestion && <input type="hidden" name="id" value={editingQuestion.id} />}
+          
           <div style={{ display: "flex", gap: "16px" }}>
             <div style={{ flex: 1 }}>
               <label className="form-label" htmlFor="quiz-order">Sıra (display_order) *</label>
@@ -150,7 +191,7 @@ export default function QuizQuestionsAdmin({ initialQuestions }: { initialQuesti
                 name="display_order"
                 type="number"
                 className="form-input"
-                defaultValue={questions.length + 1}
+                defaultValue={editingQuestion ? editingQuestion.display_order : questions.length + 1}
                 min={1}
                 required
               />
@@ -161,27 +202,8 @@ export default function QuizQuestionsAdmin({ initialQuestions }: { initialQuesti
                 id="question_type"
                 name="question_type"
                 className="form-input"
-                defaultValue="open_ended"
-                onChange={(e) => {
-                  const isMC = e.target.value === "multiple_choice";
-                  document.getElementById("mc-options")!.style.display = isMC ? "block" : "none";
-                  document.getElementById("mc-answer-select")!.style.display = isMC ? "block" : "none";
-                  document.getElementById("open-answer-input")!.style.display = isMC ? "none" : "block";
-                  
-                  const answerInput = document.getElementById("quiz-answer") as HTMLInputElement;
-                  const answerSelect = document.getElementById("quiz-answer-mc") as HTMLSelectElement;
-                  if (isMC) {
-                    answerInput.removeAttribute("required");
-                    answerSelect.setAttribute("required", "required");
-                    answerSelect.name = "correct_answer";
-                    answerInput.name = "correct_answer_hidden";
-                  } else {
-                    answerSelect.removeAttribute("required");
-                    answerInput.setAttribute("required", "required");
-                    answerInput.name = "correct_answer";
-                    answerSelect.name = "correct_answer_hidden";
-                  }
-                }}
+                value={questionType}
+                onChange={(e) => setQuestionType(e.target.value as "open_ended" | "multiple_choice")}
               >
                 <option value="open_ended">Açık Uçlu (Metin Girişi)</option>
                 <option value="multiple_choice">Çoktan Seçmeli (4 Şık)</option>
@@ -196,59 +218,69 @@ export default function QuizQuestionsAdmin({ initialQuestions }: { initialQuesti
               type="text"
               className="form-input"
               placeholder="Örn: İlk randevumuzda nereye gittik?"
+              defaultValue={editingQuestion?.question_text || ""}
               required
             />
           </div>
 
-          <div id="mc-options" style={{ display: "none" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
-              <div>
-                <label className="form-label" htmlFor="option_a">A Şıkkı</label>
-                <input id="option_a" name="option_a" type="text" className="form-input" placeholder="A Şıkkı" />
-              </div>
-              <div>
-                <label className="form-label" htmlFor="option_b">B Şıkkı</label>
-                <input id="option_b" name="option_b" type="text" className="form-input" placeholder="B Şıkkı" />
-              </div>
-              <div>
-                <label className="form-label" htmlFor="option_c">C Şıkkı</label>
-                <input id="option_c" name="option_c" type="text" className="form-input" placeholder="C Şıkkı" />
-              </div>
-              <div>
-                <label className="form-label" htmlFor="option_d">D Şıkkı</label>
-                <input id="option_d" name="option_d" type="text" className="form-input" placeholder="D Şıkkı" />
+          {questionType === "multiple_choice" && (
+            <div id="mc-options">
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
+                <div>
+                  <label className="form-label" htmlFor="option_a">A Şıkkı</label>
+                  <input id="option_a" name="option_a" type="text" className="form-input" placeholder="A Şıkkı" defaultValue={editingQuestion?.option_a || ""} required />
+                </div>
+                <div>
+                  <label className="form-label" htmlFor="option_b">B Şıkkı</label>
+                  <input id="option_b" name="option_b" type="text" className="form-input" placeholder="B Şıkkı" defaultValue={editingQuestion?.option_b || ""} required />
+                </div>
+                <div>
+                  <label className="form-label" htmlFor="option_c">C Şıkkı</label>
+                  <input id="option_c" name="option_c" type="text" className="form-input" placeholder="C Şıkkı" defaultValue={editingQuestion?.option_c || ""} required />
+                </div>
+                <div>
+                  <label className="form-label" htmlFor="option_d">D Şıkkı</label>
+                  <input id="option_d" name="option_d" type="text" className="form-input" placeholder="D Şıkkı" defaultValue={editingQuestion?.option_d || ""} required />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          <div id="open-answer-input" style={{ display: "block" }}>
-            <label className="form-label" htmlFor="quiz-answer">Doğru Cevap *</label>
-            <input
-              id="quiz-answer"
-              name="correct_answer"
-              type="text"
-              className="form-input"
-              placeholder="Cevabı yazın (Türkçe karakterler otomatik normalize edilir)"
-              required
-            />
-            <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", marginTop: 6 }}>
-              Açık uçlu sorularda cevap sunucuda normalize edilir (küçük harf, Türkçe karakter dönüşümü).
-            </p>
-          </div>
+          {questionType === "open_ended" && (
+            <div id="open-answer-input">
+              <label className="form-label" htmlFor="quiz-answer">Doğru Cevap *</label>
+              <input
+                id="quiz-answer"
+                name="correct_answer"
+                type="text"
+                className="form-input"
+                placeholder="Cevabı yazın (Türkçe karakterler otomatik normalize edilir)"
+                defaultValue={editingQuestion?.correct_answer || ""}
+                required
+              />
+              <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", marginTop: 6 }}>
+                Açık uçlu sorularda cevap sunucuda normalize edilir (küçük harf, Türkçe karakter dönüşümü).
+              </p>
+            </div>
+          )}
 
-          <div id="mc-answer-select" style={{ display: "none" }}>
-            <label className="form-label" htmlFor="quiz-answer-mc">Doğru Cevap Şıkkı *</label>
-            <select
-              id="quiz-answer-mc"
-              name="correct_answer_hidden"
-              className="form-input"
-            >
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-            </select>
-          </div>
+          {questionType === "multiple_choice" && (
+            <div id="mc-answer-select">
+              <label className="form-label" htmlFor="quiz-answer-mc">Doğru Cevap Şıkkı *</label>
+              <select
+                id="quiz-answer-mc"
+                name="correct_answer"
+                className="form-input"
+                defaultValue={editingQuestion?.correct_answer || "A"}
+                required
+              >
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="form-label" htmlFor="quiz-hint">İpucu (isteğe bağlı)</label>
@@ -262,7 +294,16 @@ export default function QuizQuestionsAdmin({ initialQuestions }: { initialQuesti
           </div>
           {formError && <p className="form-error">{formError}</p>}
           <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">İptal</button>
+            <button 
+              type="button" 
+              onClick={() => {
+                setIsModalOpen(false);
+                setEditingQuestion(null);
+              }} 
+              className="btn-secondary"
+            >
+              İptal
+            </button>
             <button type="submit" className="btn-primary" disabled={isPending}>
               {isPending ? "Kaydediliyor..." : "Soruyu Kaydet 🔒"}
             </button>

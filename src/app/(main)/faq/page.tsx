@@ -15,10 +15,10 @@ export default async function FaqPage() {
   return (
     <div className="container" style={{ paddingTop: "64px", paddingBottom: "80px" }}>
       <div className="page-header">
-        <div className="label">💝 Hakkımızda Quiz</div>
-        <h1>Bizi Ne Kadar İyi Tanıyorsun?</h1>
+        <div className="label">💝 İLİŞKİ TESTİ</div>
+        <h1>Beni Ne Kadar İyi Tanıyorsun?</h1>
         <p>
-          4 şıklı sorularla bizi test et! Skorun LocalStorage&apos;da saklanacak.
+          Birbirimizi ne kadar iyi tanıyoruz.
         </p>
       </div>
 
