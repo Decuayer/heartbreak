@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createCoupon, deleteCoupon, getCoupons } from "@/lib/actions/coupons";
+import { createCoupon, updateCoupon, deleteCoupon, getCoupons } from "@/lib/actions/coupons";
 import Modal from "@/components/admin/Modal";
-import { Plus, Trash2, CheckCircle, Clock } from "lucide-react";
+import { Plus, Trash2, Edit2, CheckCircle, Clock } from "lucide-react";
 
 interface Coupon {
   id: string;
@@ -19,21 +19,41 @@ const COUPON_ICONS = ["🎁", "💝", "🌹", "🍕", "🎬", "☕", "🛁", "�
 export default function CouponsAdmin({ initialCoupons }: { initialCoupons: Coupon[] }) {
   const [coupons, setCoupons] = useState(initialCoupons);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [formError, setFormError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  async function handleCreate(formData: FormData) {
+  async function handleSubmit(formData: FormData) {
     setFormError("");
     startTransition(async () => {
-      const result = await createCoupon(formData);
+      let result;
+      if (editingCoupon) {
+        result = await updateCoupon(editingCoupon.id, formData);
+      } else {
+        result = await createCoupon(formData);
+      }
+      
       if (result?.error) {
         setFormError(result.error);
       } else {
         setIsModalOpen(false);
+        setEditingCoupon(null);
         const updated = await getCoupons();
         setCoupons(updated);
       }
     });
+  }
+
+  function handleEditClick(coupon: Coupon) {
+    setEditingCoupon(coupon);
+    setFormError("");
+    setIsModalOpen(true);
+  }
+
+  function handleAddNewClick() {
+    setEditingCoupon(null);
+    setFormError("");
+    setIsModalOpen(true);
   }
 
   async function handleDelete(id: string) {
@@ -57,7 +77,7 @@ export default function CouponsAdmin({ initialCoupons }: { initialCoupons: Coupo
             {coupons.length} kupon · {coupons.filter(c => c.is_used).length} kullanıldı
           </p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
+        <button onClick={handleAddNewClick} className="btn-primary">
           <Plus size={16} />
           Yeni Kupon
         </button>
@@ -104,15 +124,26 @@ export default function CouponsAdmin({ initialCoupons }: { initialCoupons: Coupo
                   <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
                     Son: {coupon.expiry_date}
                   </span>
-                  <button
-                    onClick={() => handleDelete(coupon.id)}
-                    className="btn-danger"
-                    disabled={isPending}
-                    style={{ padding: "6px 12px", fontSize: "0.75rem" }}
-                  >
-                    <Trash2 size={12} />
-                    Sil
-                  </button>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      onClick={() => handleEditClick(coupon)}
+                      className="btn-secondary"
+                      disabled={isPending}
+                      style={{ padding: "6px 12px", fontSize: "0.75rem" }}
+                    >
+                      <Edit2 size={12} />
+                      Düzenle
+                    </button>
+                    <button
+                      onClick={() => handleDelete(coupon.id)}
+                      className="btn-danger"
+                      disabled={isPending}
+                      style={{ padding: "6px 12px", fontSize: "0.75rem" }}
+                    >
+                      <Trash2 size={12} />
+                      Sil
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -120,48 +151,89 @@ export default function CouponsAdmin({ initialCoupons }: { initialCoupons: Coupo
         </div>
       )}
 
-      {/* Create Modal */}
-      <Modal title="Yeni Kupon Oluştur" isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <form action={handleCreate} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Create / Edit Modal */}
+      <Modal 
+        title={editingCoupon ? "Kuponu Güncelle" : "Yeni Kupon Oluştur"} 
+        isOpen={isModalOpen} 
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingCoupon(null);
+        }}
+      >
+        <form action={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <div>
             <label className="form-label">İkon</label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {COUPON_ICONS.map((icon) => (
-                <label key={icon} style={{ cursor: "pointer" }}>
-                  <input type="radio" name="icon" value={icon} defaultChecked={icon === "🎁"} style={{ display: "none" }} />
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: "1.5rem",
-                      padding: "6px 10px",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {icon}
-                  </span>
-                </label>
-              ))}
+              {COUPON_ICONS.map((icon) => {
+                const isChecked = editingCoupon ? editingCoupon.icon === icon : icon === "🎁";
+                return (
+                  <label key={icon} style={{ cursor: "pointer" }}>
+                    <input type="radio" name="icon" value={icon} defaultChecked={isChecked} style={{ display: "none" }} />
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: "1.5rem",
+                        padding: "6px 10px",
+                        borderRadius: "var(--radius-sm)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {icon}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           </div>
           <div>
             <label className="form-label" htmlFor="coupon-title">Başlık *</label>
-            <input id="coupon-title" name="title" type="text" className="form-input" placeholder="Kupon başlığı" required />
+            <input 
+              id="coupon-title" 
+              name="title" 
+              type="text" 
+              className="form-input" 
+              placeholder="Kupon başlığı" 
+              defaultValue={editingCoupon?.title || ""}
+              required 
+            />
           </div>
           <div>
             <label className="form-label" htmlFor="coupon-desc">Açıklama</label>
-            <textarea id="coupon-desc" name="description" className="form-input" rows={3} placeholder="Kupon detayı..." />
+            <textarea 
+              id="coupon-desc" 
+              name="description" 
+              className="form-input" 
+              rows={3} 
+              placeholder="Kupon detayı..." 
+              defaultValue={editingCoupon?.description || ""}
+            />
           </div>
           <div>
             <label className="form-label" htmlFor="coupon-expiry">Son Kullanma Tarihi *</label>
-            <input id="coupon-expiry" name="expiry_date" type="date" className="form-input" required />
+            <input 
+              id="coupon-expiry" 
+              name="expiry_date" 
+              type="date" 
+              className="form-input" 
+              defaultValue={editingCoupon?.expiry_date || ""}
+              required 
+            />
           </div>
           {formError && <p className="form-error">{formError}</p>}
           <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">İptal</button>
+            <button 
+              type="button" 
+              onClick={() => {
+                setIsModalOpen(false);
+                setEditingCoupon(null);
+              }} 
+              className="btn-secondary"
+            >
+              İptal
+            </button>
             <button type="submit" className="btn-primary" disabled={isPending}>
-              {isPending ? "Kaydediliyor..." : "Kuponu Oluştur 🎁"}
+              {isPending ? "Kaydediliyor..." : "Kaydet 🎁"}
             </button>
           </div>
         </form>

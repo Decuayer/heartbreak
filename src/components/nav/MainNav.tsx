@@ -26,9 +26,8 @@ export default function MainNav() {
 
   return (
     <nav className="nav">
-      <Link href="/" className="nav-brand">
-        <span className="heart-pulse" aria-hidden="true">💕</span>
-        Nehir Polat
+      <Link href="/" className="nav-brand" style={{ fontSize: "1.75rem", textDecoration: "none" }}>
+        <span className="heart-pulse" aria-hidden="true">❤️</span>
       </Link>
 
       <ul className="nav-links">
