@@ -10,12 +10,14 @@ const SETTINGS_ID = "00000000-0000-0000-0000-000000000002";
 export interface AppSettings {
   relationshipStartDate: string;
   counterStartDate: string;
+  heroPhotoUrl: string;
 }
 
 export async function getSettings(): Promise<AppSettings> {
   const defaultSettings: AppSettings = {
     relationshipStartDate: process.env.RELATIONSHIP_START_DATE ?? "2025-01-01",
     counterStartDate: "2026-06-23",
+    heroPhotoUrl: "",
   };
 
   const supabase = createAdminClient();
@@ -34,6 +36,7 @@ export async function getSettings(): Promise<AppSettings> {
     return {
       relationshipStartDate: parsed.relationshipStartDate || defaultSettings.relationshipStartDate,
       counterStartDate: parsed.counterStartDate || defaultSettings.counterStartDate,
+      heroPhotoUrl: parsed.heroPhotoUrl || "",
     };
   } catch {
     return defaultSettings;
@@ -63,5 +66,27 @@ export async function updateSettings(formData: FormData) {
   // Revalidate relevant pages so changes apply instantly
   revalidatePath("/counter");
   revalidatePath("/admin/reasons");
+  return { success: true };
+}
+
+export async function updateHeroPhoto(formData: FormData) {
+  const heroPhotoUrl = formData.get("heroPhotoUrl") as string;
+
+  const currentSettings = await getSettings();
+  const newSettings = { ...currentSettings, heroPhotoUrl: heroPhotoUrl || "" };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("digital_letters")
+    .upsert({
+      id: SETTINGS_ID,
+      letter_content: JSON.stringify(newSettings),
+      updated_at: new Date().toISOString(),
+    });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin/hero-photo");
   return { success: true };
 }

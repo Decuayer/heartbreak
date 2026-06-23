@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Clock, Ticket, Mail, Sparkles, HelpCircle, Heart } from "lucide-react";
 import { getDaysSince } from "@/lib/utils/date";
+import { getSettings } from "@/lib/actions/settings";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "Ana Sayfa | Nehir Polat'ın Paneli",
@@ -56,14 +58,25 @@ const MODULES = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
   const startDate = process.env.RELATIONSHIP_START_DATE ?? "2024-01-01";
   const daysTogether = getDaysSince(startDate);
+  const settings = await getSettings();
 
   return (
     <div className="container" style={{ paddingTop: "64px", paddingBottom: "80px" }}>
       {/* Hero Section */}
-      <section style={{ textAlign: "center", marginBottom: "80px" }}>
+      <section
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          marginBottom: "80px",
+          gap: 0,
+        }}
+      >
+        {/* Badge */}
         <div
           className="animate-fade-in"
           style={{
@@ -83,33 +96,11 @@ export default function HomePage() {
           </span>
         </div>
 
-        <h1
-          className="gradient-text animate-fade-in-up"
-          style={{ animationDelay: "0.1s", marginBottom: "20px" }}
-        >
-          Seninle Her An Özel 💕
-        </h1>
-
-        <p
-          className="animate-fade-in-up"
-          style={{
-            animationDelay: "0.2s",
-            maxWidth: 560,
-            margin: "0 auto",
-            fontSize: "1.125rem",
-            color: "var(--color-text-secondary)",
-            lineHeight: 1.7,
-          }}
-        >
-          Burası tamamen bize, tamamen sana ait küçük bir dünya. Bizim hikayemiz burada başlıyor.
-        </p>
-
         {/* Days counter display */}
         <div
           className="animate-scale-in"
           style={{
-            animationDelay: "0.3s",
-            marginTop: "48px",
+            animationDelay: "0.1s",
             display: "inline-flex",
             gap: "16px",
             padding: "24px 40px",
@@ -153,6 +144,85 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+
+        {/* Hero couple photo — shown between counter and title */}
+        {settings.heroPhotoUrl && (
+          <div
+            className="animate-fade-in-up"
+            style={{
+              animationDelay: "0.25s",
+              marginTop: "48px",
+              width: "min(420px, 88vw)",
+              position: "relative",
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                aspectRatio: "4 / 3",
+                borderRadius: "var(--radius-xl)",
+                overflow: "hidden",
+                border: "2px solid rgba(196, 28, 82, 0.3)",
+                boxShadow: "0 0 48px rgba(196, 28, 82, 0.2), 0 24px 64px rgba(0,0,0,0.5)",
+              }}
+            >
+              <Image
+                src={settings.heroPhotoUrl}
+                alt="Biz"
+                fill
+                style={{ objectFit: "cover" }}
+                sizes="(max-width: 480px) 88vw, 420px"
+                priority
+              />
+              {/* Heart badge */}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 12,
+                  right: 12,
+                  width: 36,
+                  height: 36,
+                  background: "rgba(196,28,82,0.9)",
+                  backdropFilter: "blur(8px)",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Heart size={16} fill="white" style={{ color: "white" }} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Title */}
+        <h1
+          className="gradient-text animate-fade-in-up"
+          style={{
+            animationDelay: settings.heroPhotoUrl ? "0.4s" : "0.2s",
+            marginBottom: "20px",
+            marginTop: "48px",
+          }}
+        >
+          Seninle Her An Özel 💕
+        </h1>
+
+        {/* Subtitle */}
+        <p
+          className="animate-fade-in-up"
+          style={{
+            animationDelay: settings.heroPhotoUrl ? "0.5s" : "0.3s",
+            maxWidth: 560,
+            margin: "0 auto",
+            fontSize: "1.125rem",
+            color: "var(--color-text-secondary)",
+            lineHeight: 1.7,
+          }}
+        >
+          Burası tamamen bize, tamamen sana ait küçük bir dünya. Bizim hikayemiz burada başlıyor.
+        </p>
       </section>
 
       {/* Module Cards Grid */}

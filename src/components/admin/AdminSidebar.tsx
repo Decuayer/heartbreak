@@ -14,6 +14,7 @@ import {
   LogOut,
   Shield,
   MessageSquare,
+  Image,
 } from "lucide-react";
 
 const ADMIN_NAV = [
@@ -24,6 +25,7 @@ const ADMIN_NAV = [
   { href: "/admin/reasons", label: "Sevgi Sebepleri", icon: Sparkles },
   { href: "/admin/faq", label: "Quiz Soruları", icon: HelpCircle },
   { href: "/admin/quiz", label: "Giriş Soruları", icon: MessageSquare },
+  { href: "/admin/hero-photo", label: "Ana Sayfa Fotoğrafı", icon: Image },
 ];
 
 export default function AdminSidebar({ userEmail }: { userEmail: string }) {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Clock, Ticket, Mail, Sparkles, HelpCircle, MessageSquare, BarChart3 } from "lucide-react";
+import { Clock, Ticket, Mail, Sparkles, HelpCircle, MessageSquare, BarChart3, Image } from "lucide-react";
 import { getTimelineEvents } from "@/lib/actions/timeline";
 import { getCoupons } from "@/lib/actions/coupons";
 import { getAllLoveReasons } from "@/lib/actions/reasons";
@@ -36,6 +36,7 @@ export default async function AdminDashboard() {
     { href: "/admin/reasons", label: "Sevgi Sebepleri", icon: Sparkles, desc: "Sıralı sebep yönet" },
     { href: "/admin/faq", label: "Quiz Soruları", icon: HelpCircle, desc: "FAQ soruları düzenle" },
     { href: "/admin/quiz", label: "Giriş Soruları", icon: MessageSquare, desc: "Login quiz sorularını yönet" },
+    { href: "/admin/hero-photo", label: "Ana Sayfa Fotoğrafı", icon: Image, desc: "Çift fotoğrafını güncelle" },
   ];
 
   return (
